@@ -7,6 +7,7 @@ class TSP():
     population = None 
     population_fitness = None
     child_population = None
+    generations = None
 
     def __init__(self) -> None:
         """
@@ -17,7 +18,7 @@ class TSP():
             self.status_update("[PROCESS] Initializing random distances to each cities!")
             self.distances = self.get_distance_matrix(self.number_of_cities) #generate random distances between cities.
             self.population_size = int(input("[I/O] Please enter population size: "))
-                   
+            self.generations = list() #the output of each generation must be stored within this. e
         except Exception as e:
             self.status_update("[ERR] The following error occured while trying to intialize module params: "+str(e))
         
@@ -129,22 +130,23 @@ class TSP():
             self.status_update("[ERR] The following error occured while trying to compute distances for population samples: "+str(e))
 
 
-    def fitness(self) -> dict:
+    def fitness(self, population) -> dict:
         """
         This method will act as a fitness function for us to select, population instances or routes with shorter distances.
         We have a simpler approach, we shall normalize the fitness level of each of the population sample and then return their fitness levels.
+        Here we have to compute inverse fitness because shorter paths must have larger fitness values.
         """
         try:
             self.status_update("[PROCESS] Computing fitness values for each of the instance/routes within the population.")
             total_distance = 0
             population_fitnesss = dict()
-            for route, distance in self.population_distance.items():
+            for route, distance in population.items():
                 total_distance = total_distance + distance
 
             self.status_update("[PROCESS] Normalizing values for each of the population instance/routes.")
 
-            for route, distance in self.population_distance.items():
-                population_fitnesss[route] = (distance/total_distance)
+            for route, distance in population.items():
+                population_fitnesss[route] = 1 - (distance/total_distance) #gives us invert fitness values!
 
             self.status_update("[INFO] Fitness values have been created successfully for population samples!")
             return population_fitnesss
@@ -225,12 +227,12 @@ class TSP():
         By default the mutation rate is 2% to maintain diversity and keep the frequency in check.
         """
         try:
-            percentage = random.randint(0,100)
+            percentage = random.randint(1,100)
             
             split_and_convert = lambda lst: [int(s) for s in lst.split(',')]
             child = split_and_convert(child)
-            if percentage<=mutation_rate:
-                return child
+            if percentage>mutation_rate:
+                return None
             else:
                 i = random.randint(0, (len(child)-1))
                 j = random.randint(0, (len(child)-1))
@@ -256,13 +258,13 @@ class TSP():
             self.status_update("[PROCESS] The mutation rate is 2%")
             for route, distance in population.items(): 
                 result  = self.mutate(route) #try and mutate the sample.
-                route =  split_and_convert(route)
-                if join_and_convert(result) == join_and_convert(route): #check if there is change in route from mutation
+                if result is None:  #check if there is change in route from mutation
                     continue #no mutation occured we do nothing.
-                else:
-                    mutated_samples= mutated_samples + 1 #count mutated values
-                    new_distance = self.compute_distance_of_sample(result) #compute distance for new route.
-                    mutated_population[join_and_convert(result)] = new_distance #save the distance for new mutated route.
+                route =  split_and_convert(route)
+               
+                mutated_samples= mutated_samples + 1 #count mutated values
+                new_distance = self.compute_distance_of_sample(result) #compute distance for new route.
+                mutated_population[join_and_convert(result)] = new_distance #save the distance for new mutated route.
             self.status_update("[PROCESS] Out of %d from child population a total of %d have undergone mutation."%(len(population), mutated_samples))
 
             return mutated_population
@@ -274,13 +276,15 @@ class TSP():
         The run method acts like the driver method for this module/class, kinda like a main function within C.
         """
         try:
+            
             self.population = self.create_population(self.population_size) #create population
             self.population_distance = self.create_population_distances() #detemine total distance travelled for a route.
-            self.population_fitness = self.fitness() #call the fitness function on population, by normalizing the fitness for each of the population instance.
+            self.population_fitness = self.fitness(self.population_distance) #call the fitness function on population, by normalizing the fitness for each of the population instance.           
             self.population_fitness = self.roulette_wheel() #performs selection from fitness generated, and then selects fit instances from samples.
             self.child_population = self.perform_crossover(self.population_fitness) #performs crossover for fit parents in an attempt to create new children that are better.
             self.child_population.update(self.apply_mutation(self.child_population)) #apply mutation over this new population.
-            
+            self.child_fitness = self.fitness(self.child_population)
+            stats = self.get_population_results(self.child_population, self.child_fitness)
         except Exception as e:
             self.status_update("[ERR] The following error occured while trying to run the module: "+str(e))
 
