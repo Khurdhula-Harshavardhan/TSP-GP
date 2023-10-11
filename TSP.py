@@ -6,6 +6,7 @@ class TSP():
     population_size = None
     population = None 
     population_fitness = None
+    child_population = None
 
     def __init__(self) -> None:
         """
@@ -16,14 +17,7 @@ class TSP():
             self.status_update("[PROCESS] Initializing random distances to each cities!")
             self.distances = self.get_distance_matrix(self.number_of_cities) #generate random distances between cities.
             self.population_size = int(input("[I/O] Please enter population size: "))
-            self.population = self.create_population(self.population_size) #create population
-            self.population_distance = self.create_population_distances() #detemine total distance travelled for a route.
-            print(self.create_population_distances())
-            self.fitness()
-
-            self.population_fitness = self.fitness()
-
-            self.roulette_wheel()        
+                   
         except Exception as e:
             self.status_update("[ERR] The following error occured while trying to intialize module params: "+str(e))
         
@@ -35,7 +29,7 @@ class TSP():
         print(msg)
 
 
-    def get_distance_matrix(self, n) -> [[]]:
+    def get_distance_matrix(self, n) -> list:
         """
         This method generates a distance matrix for n cities.
         """
@@ -63,7 +57,7 @@ class TSP():
             self.status_update("[ERR] The following error occured while trying to create a distance matrix"+str(e))
 
 
-    def get_population_string(self) -> list():
+    def get_population_string(self) -> list:
         """
         This method creates a instance for the population and returns it to the calling method.
         """
@@ -100,7 +94,7 @@ class TSP():
             self.status_update("[ERR] The following error occured while trying to create population: "+str(e))
 
 
-    def compute_distance_of_sample(self, instance) -> int():
+    def compute_distance_of_sample(self, instance:list) -> float:
         """
         This accepts a instance from population and then computes the total distance traveled.
         """
@@ -117,7 +111,7 @@ class TSP():
         except Exception as e:
             self.status_update("[ERR] The following error occured while compute the distance for each sample: "+str(e))
 
-    def create_population_distances(self) -> dict():
+    def create_population_distances(self) -> dict:
         """
         Computes distances for each sample within entire population:
         """
@@ -135,7 +129,7 @@ class TSP():
             self.status_update("[ERR] The following error occured while trying to compute distances for population samples: "+str(e))
 
 
-    def fitness(self) -> dict():
+    def fitness(self) -> dict:
         """
         This method will act as a fitness function for us to select, population instances or routes with shorter distances.
         We have a simpler approach, we shall normalize the fitness level of each of the population sample and then return their fitness levels.
@@ -153,7 +147,6 @@ class TSP():
                 population_fitnesss[route] = (distance/total_distance)
 
             self.status_update("[INFO] Fitness values have been created successfully for population samples!")
-            print(population_fitnesss)
             return population_fitnesss
 
         except Exception as e:
@@ -178,7 +171,12 @@ class TSP():
         except Exception as e:
             self.status_update("[ERR] The following error occured while trying to spin roulette wheel over routes: "+str(e))
 
-    def crossover(self, parent_one, parent_two) -> str():
+    def crossover(self, parent_one, parent_two) -> str:
+        """
+        The crossover method, accepts two parent strings from the population set,
+        Then creates a new child instance(route) by combining the information from two parents.
+        This resulting child is then returned as the next gen, instance of the population.
+        """
         try:
             split_and_convert = lambda lst: [int(s) for s in lst.split(',')]
             parent_one = split_and_convert(parent_one)
@@ -194,6 +192,47 @@ class TSP():
         except Exception as e:
             self.status_update("[ERR] The following error occured while trying to perform crossover for two routes/parents: "+str(e))
 
+    def perform_crossover(self, population_fitness) -> dict:
+        """
+        The perform_crossover accepts a population with their fitness values defined -> route: fitness.
+        The isntances are all of resulting selected instances from roulette wheel selection.
+        Upon these we are to perform the crossover by randomly selecting two samples.
+        """
+        try:
+            children = dict()
+            self.status_update("[PROCESS] Applying crossover to selected fit population.")
+            
+            parents = list(population_fitness.keys())
+            attempts = random.randint(0, (len(parents)-1))
+            for i in range(attempts):
+                j = random.randint(0, (len(parents)-1))
+                if i == j:
+                    continue
+                
+                child = self.crossover(parent_one= parents[i], parent_two= parents[j])
+                distance = self.compute_distance_of_sample(child)
+                join_and_convert = lambda lst: ','.join([str(i) for i in lst])
+                children[join_and_convert(child)] = distance
+
+            self.status_update("[PROCESS] Created a offspring population of size: "+str(attempts))
+            return children
+        except Exception as e:
+            self.status_update("[ERR] The following error occured while trying to apply crossover over selected population: "+str(e))
+
+    def run(self) -> None:
+        """
+        The run method acts like the driver method for this module/class, kinda like a main function within C.
+        """
+        try:
+            self.population = self.create_population(self.population_size) #create population
+            self.population_distance = self.create_population_distances() #detemine total distance travelled for a route.
+            self.population_fitness = self.fitness() #call the fitness function on population, by normalizing the fitness for each of the population instance.
+            self.population_fitness = self.roulette_wheel() #performs selection from fitness generated, and then selects fit instances from samples.
+            self.child_population = self.perform_crossover(self.population_fitness) #performs crossover for fit parents in an attempt to create new children that are better.
+            
+        except Exception as e:
+            self.status_update("[ERR] The following error occured while trying to run the module: "+str(e))
+
 
 obj = TSP()
-print(obj.crossover("1,3,4,5,6,2", "2,4,5,7,1,3"))
+obj.run()
