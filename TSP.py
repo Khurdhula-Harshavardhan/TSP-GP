@@ -5,6 +5,7 @@ class TSP():
     distances = None
     population_size = None
     population = None 
+    population_fitness = None
 
     def __init__(self) -> None:
         """
@@ -15,15 +16,14 @@ class TSP():
             self.status_update("[PROCESS] Initializing random distances to each cities!")
             self.distances = self.get_distance_matrix(self.number_of_cities) #generate random distances between cities.
             self.population_size = int(input("[I/O] Please enter population size: "))
-            for row in self.distances:
-                print(row)
             self.population = self.create_population(self.population_size) #create population
-            print(self.population)
             self.population_distance = self.create_population_distances()
             print(self.create_population_distances())
             self.fitness()
 
-            
+            self.population_fitness = self.fitness()
+
+            self.roulette_wheel()
             
             
             
@@ -54,7 +54,7 @@ class TSP():
                         row.append(0) #distance from a city to itself is zero!
                         continue
 
-                    row.append(round(random.uniform(1, n), 2)) #append the distance between two cities.
+                    row.append(round(random.uniform(1, n), 4)) #append the distance between two cities.
                 matrix.append(row)
 
 
@@ -94,10 +94,11 @@ class TSP():
         try:
             pop = list()
             self.status_update("[PROCESS] Creating population with size %d"%(n))
-            for _ in range(n):
+            for i in range(n):
                 new_sample = self.get_population_string()
                 pop.append(new_sample)
-
+                print(f"\r[PROCESS] Total population created so far:  {round(((i/n)*100),2)}% DONE", end="")
+    
             self.status_update("[PROCESS] A new population with size %d has been created successfully!"%(n))
             return pop
         except Exception as e:
@@ -116,7 +117,7 @@ class TSP():
 
             distance = distance + self.distances[instance[-1]][instance[0]]
 
-            return round(distance,2)
+            return round(distance,4)
 
         except Exception as e:
             self.status_update("[ERR] The following error occured while compute the distance for each sample: "+str(e))
@@ -147,21 +148,40 @@ class TSP():
         try:
             self.status_update("[PROCESS] Computing fitness values for each of the instance/routes within the population.")
             total_distance = 0
-            population_fitness = dict()
+            population_fitnesss = dict()
             for route, distance in self.population_distance.items():
                 total_distance = total_distance + distance
 
             self.status_update("[PROCESS] Normalizing values for each of the population instance/routes.")
 
             for route, distance in self.population_distance.items():
-                population_fitness[route] = round((distance/total_distance),2)
+                population_fitnesss[route] = (distance/total_distance)
 
             self.status_update("[INFO] Fitness values have been created successfully for population samples!")
-            print(population_fitness)
+            print(population_fitnesss)
+            return population_fitnesss
 
         except Exception as e:
             self.status_update("[ERR] The following error occured while trying to compute fitness of each function: "+str(e))
-    
+
+    def roulette_wheel(self) -> dict():
+        """
+        Roulette wheel generates a random point between 0.0, 1.0 and then selects those routes/population instances with fitness value greater than the generated value.
+        """
+        try:
+            self.status_update("[PROCESS] Spinning roulette wheel on population instances.")
+            self.status_update("[PROCESS] Determining random fitness cutoff for population.")
+
+            cut_off = random.uniform(min(self.population_fitness.values()), max(self.population_fitness.values()))
+            selected_population = dict()
+
+            for route, fitness_level in self.population_fitness.items():
+                if fitness_level>=cut_off:
+                    selected_population[route] = fitness_level
+            self.status_update("[INFO] Population has been narrowed down to fit population.")
+            return selected_population
+        except Exception as e:
+            self.status_update("[ERR] The following error occured while trying to spin roulette wheel over routes: "+str(e))
 
 
 obj = TSP()
