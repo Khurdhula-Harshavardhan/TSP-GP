@@ -226,9 +226,10 @@ class TSP():
         """
         try:
             percentage = random.randint(0,100)
+            
             split_and_convert = lambda lst: [int(s) for s in lst.split(',')]
             child = split_and_convert(child)
-            if percentage<=2:
+            if percentage<=mutation_rate:
                 return child
             else:
                 i = random.randint(0, (len(child)-1))
@@ -242,6 +243,32 @@ class TSP():
         except Exception as e:
             self.status_update("[ERR] The following error occured while trying to mutate a sample: "+str(e))
 
+    def apply_mutation(self, population: dict) -> dict:
+        """
+        This method applies mutate method to the child population to randomly mutate certain routes.
+        """
+        try:
+            mutated_samples = 0
+            mutated_population = dict()
+            split_and_convert = lambda lst: [int(s) for s in lst.split(',')]
+            join_and_convert = lambda lst: ','.join([str(i) for i in lst])
+            self.status_update("[PROCESS] Trying to apply mutation over child population!")
+            self.status_update("[PROCESS] The mutation rate is 2%")
+            for route, distance in population.items(): 
+                result  = self.mutate(route) #try and mutate the sample.
+                route =  split_and_convert(route)
+                if join_and_convert(result) == join_and_convert(route): #check if there is change in route from mutation
+                    continue #no mutation occured we do nothing.
+                else:
+                    mutated_samples= mutated_samples + 1 #count mutated values
+                    new_distance = self.compute_distance_of_sample(result) #compute distance for new route.
+                    mutated_population[join_and_convert(result)] = new_distance #save the distance for new mutated route.
+            self.status_update("[PROCESS] Out of %d from child population a total of %d have undergone mutation."%(len(population), mutated_samples))
+
+            return mutated_population
+        except Exception as e:
+            self.status_update("[ERR] The following error occured while trying to mutate the population: "+str(e))
+
     def run(self) -> None:
         """
         The run method acts like the driver method for this module/class, kinda like a main function within C.
@@ -252,6 +279,7 @@ class TSP():
             self.population_fitness = self.fitness() #call the fitness function on population, by normalizing the fitness for each of the population instance.
             self.population_fitness = self.roulette_wheel() #performs selection from fitness generated, and then selects fit instances from samples.
             self.child_population = self.perform_crossover(self.population_fitness) #performs crossover for fit parents in an attempt to create new children that are better.
+            self.child_population.update(self.apply_mutation(self.child_population)) #apply mutation over this new population.
             
         except Exception as e:
             self.status_update("[ERR] The following error occured while trying to run the module: "+str(e))
@@ -259,3 +287,4 @@ class TSP():
 
 obj = TSP()
 obj.run()
+
