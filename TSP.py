@@ -17,18 +17,13 @@ class TSP():
             self.distances = self.get_distance_matrix(self.number_of_cities) #generate random distances between cities.
             self.population_size = int(input("[I/O] Please enter population size: "))
             self.population = self.create_population(self.population_size) #create population
-            self.population_distance = self.create_population_distances()
+            self.population_distance = self.create_population_distances() #detemine total distance travelled for a route.
             print(self.create_population_distances())
             self.fitness()
 
             self.population_fitness = self.fitness()
 
-            self.roulette_wheel()
-            
-            
-            
-
-
+            self.roulette_wheel()        
         except Exception as e:
             self.status_update("[ERR] The following error occured while trying to intialize module params: "+str(e))
         
@@ -183,5 +178,22 @@ class TSP():
         except Exception as e:
             self.status_update("[ERR] The following error occured while trying to spin roulette wheel over routes: "+str(e))
 
+    def crossover(self, parent_one, parent_two) -> str():
+        try:
+            split_and_convert = lambda lst: [int(s) for s in lst.split(',')]
+            parent_one = split_and_convert(parent_one)
+            parent_two = split_and_convert(parent_two)
+            
+            if len(parent_one) != len(parent_two): #inorder to perform crossover we must have parents of same lenght
+                raise Exception("Parents are of not same size!")
+
+            random_index = random.randint(0, (len(parent_one)-1))
+
+            child = parent_one[:random_index] + parent_two[random_index:]
+            return child 
+        except Exception as e:
+            self.status_update("[ERR] The following error occured while trying to perform crossover for two routes/parents: "+str(e))
+
 
 obj = TSP()
+print(obj.crossover("1,3,4,5,6,2", "2,4,5,7,1,3"))
