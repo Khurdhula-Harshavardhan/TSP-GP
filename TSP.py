@@ -19,7 +19,9 @@ class TSP():
                 print(row)
             self.population = self.create_population(self.population_size) #create population
             print(self.population)
+            self.population_distance = self.create_population_distances()
             print(self.create_population_distances())
+            self.fitness()
 
             
             
@@ -136,6 +138,29 @@ class TSP():
         except Exception as e:
             self.status_update("[ERR] The following error occured while trying to compute distances for population samples: "+str(e))
 
+
+    def fitness(self) -> dict():
+        """
+        This method will act as a fitness function for us to select, population instances or routes with shorter distances.
+        We have a simpler approach, we shall normalize the fitness level of each of the population sample and then return their fitness levels.
+        """
+        try:
+            self.status_update("[PROCESS] Computing fitness values for each of the instance/routes within the population.")
+            total_distance = 0
+            population_fitness = dict()
+            for route, distance in self.population_distance.items():
+                total_distance = total_distance + distance
+
+            self.status_update("[PROCESS] Normalizing values for each of the population instance/routes.")
+
+            for route, distance in self.population_distance.items():
+                population_fitness[route] = round((distance/total_distance),2)
+
+            self.status_update("[INFO] Fitness values have been created successfully for population samples!")
+            print(population_fitness)
+
+        except Exception as e:
+            self.status_update("[ERR] The following error occured while trying to compute fitness of each function: "+str(e))
     
 
 
