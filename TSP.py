@@ -219,6 +219,29 @@ class TSP():
         except Exception as e:
             self.status_update("[ERR] The following error occured while trying to apply crossover over selected population: "+str(e))
 
+    def mutate(self, child:str, mutation_rate = 2) -> list:
+        """
+        The mutate method, is used mutuate a particular instance of a population.
+        By default the mutation rate is 2% to maintain diversity and keep the frequency in check.
+        """
+        try:
+            percentage = random.randint(0,100)
+            split_and_convert = lambda lst: [int(s) for s in lst.split(',')]
+            child = split_and_convert(child)
+            if percentage<=2:
+                return child
+            else:
+                i = random.randint(0, (len(child)-1))
+                j = random.randint(0, (len(child)-1))
+
+                temp = child[j]
+                child[j] = child[i]
+                child[i] = temp
+
+            return child
+        except Exception as e:
+            self.status_update("[ERR] The following error occured while trying to mutate a sample: "+str(e))
+
     def run(self) -> None:
         """
         The run method acts like the driver method for this module/class, kinda like a main function within C.
