@@ -162,7 +162,7 @@ class TSP():
             self.status_update("[PROCESS] Spinning roulette wheel on population instances.")
             self.status_update("[PROCESS] Determining random fitness cutoff for population.")
 
-            cut_off = random.uniform(min(self.population_fitness.values()), max(self.population_fitness.values()))
+            cut_off = random.uniform(0.000, max(self.population_fitness.values()))
             selected_population = dict()
 
             for route, fitness_level in self.population_fitness.items():
@@ -271,20 +271,113 @@ class TSP():
         except Exception as e:
             self.status_update("[ERR] The following error occured while trying to mutate the population: "+str(e))
 
-    def run(self) -> None:
+    def get_population_results(self, population:dict, population_fitness: dict) -> list:
+        """
+        This method accepts the child population and then computes the following statistics within the entire population:
+        1. best route.
+        2. best route fitness within it's population.
+        3. average fitness of the population.
+        4. average distance of the population.
+        """
+        try:
+            self.status_update("[PROCESS] Computing statistics for latest generation please wait.")
+            shortest_path = str()
+            shortest_distance = max(list(population.values()))
+            total_fitness = 0.0
+            average_fitness = 0.0
+            average_distance = 0.0
+            total_distance = 0.0
+            n = len(population)
+            self.status_update("[PROCESS] Computing best route.")
+            self.status_update("[PROCESS] Computing best distance.")
+            self.status_update("[PROCESS] Computing best Fitness.")
+            for route, distance in population.items():
+                total_distance = total_distance + distance
+                if shortest_distance>distance:
+                    shortest_path = route
+                    shortest_distance = distance
+                
+            for route, fitness in population_fitness.items():
+                total_fitness = total_fitness + fitness
+                
+            best_fitness = population_fitness[route]
+            average_distance = total_distance/n
+            average_fitness = total_fitness/n
+
+            
+            stats = {
+                "best_path": shortest_path,
+                "best_distance": shortest_distance,
+                "best_fitness": best_fitness,
+                "average_distance": average_distance,
+                "average_fitness": average_fitness
+            }
+
+            self.status_update("[PROCESS] Stats for the latest generation are now ready.")        
+            return stats
+        except Exception as e:
+            self.status_update("[ERR] The following error occured while trying to compute statistics of the population: "+str(e))
+
+    def verify_stats(self, stats) -> bool:
+        """
+        This method varifies if the results of the current generation are valid or not.
+        """
+        try:
+            if stats is None:
+                return False
+            else:
+                if stats["best_path"] == "":
+                    return False
+                elif stats["best_distance"] == 0:
+                    return False
+                elif stats["best_fitness"] == 0:
+                    return False
+                elif stats["average_fitness"] == 0.0:
+                    return False
+                elif stats["average_distance"] == 0.0:
+                    return False
+            return True
+        except Exception as e:
+            self.status_update("[ERR] The following error occured while trying to verify results for a generation: "+str(e))
+
+    
+
+    def run(self, iterations=5) -> None:
         """
         The run method acts like the driver method for this module/class, kinda like a main function within C.
         """
         try:
-            
+            i = 0
             self.population = self.create_population(self.population_size) #create population
-            self.population_distance = self.create_population_distances() #detemine total distance travelled for a route.
-            self.population_fitness = self.fitness(self.population_distance) #call the fitness function on population, by normalizing the fitness for each of the population instance.           
-            self.population_fitness = self.roulette_wheel() #performs selection from fitness generated, and then selects fit instances from samples.
-            self.child_population = self.perform_crossover(self.population_fitness) #performs crossover for fit parents in an attempt to create new children that are better.
-            self.child_population.update(self.apply_mutation(self.child_population)) #apply mutation over this new population.
-            self.child_fitness = self.fitness(self.child_population)
-            stats = self.get_population_results(self.child_population, self.child_fitness)
+            
+            while i<iterations:
+                print("-"*100)
+                print("\t\t\t\t\t\t Generation %d"%(len(self.generations)+1))
+                print("-"*100)
+                self.population_distance = self.create_population_distances()  #detemine total distance travelled for a route.
+                self.population_fitness = self.fitness(self.population_distance) #call the fitness function on population, by normalizing the fitness for each of the population instance.           
+                self.population_fitness = self.roulette_wheel() #performs selection from fitness generated, and then selects fit instances from samples.
+                if len(self.population_fitness) == 0:
+                    self.status_update("[BREAK] Terminating abruptly because population size is too small!")
+                    break
+                self.child_population = self.perform_crossover(self.population_fitness) #performs crossover for fit parents in an attempt to create new children that are better.
+                if len(self.child_population) == 0:
+                    self.status_update("[BREAK] Terminating abruptly because population size is too small!")
+                    break
+                self.child_population.update(self.apply_mutation(self.child_population)) #apply mutation over this new population.
+                self.child_fitness = self.fitness(self.child_population)
+                stats = self.get_population_results(self.child_population, self.child_fitness)
+                
+                
+                
+                if self.verify_stats(stats=stats):
+                    self.generations.append(stats)
+                    i = i + 1
+                else:
+                    i=i-1 #recompute the results again.
+                self.population_distance = self.child_population
+                self.status_update("[INFO] Current child population shall become ordinary population for next generation.\n\n")
+            print(self.generations)
         except Exception as e:
             self.status_update("[ERR] The following error occured while trying to run the module: "+str(e))
 
