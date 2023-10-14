@@ -1,4 +1,11 @@
 import random
+import matplotlib.pyplot as plt
+
+import os
+
+def clear_screen():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
 
 class TSP():
     number_of_cities = None
@@ -8,6 +15,7 @@ class TSP():
     population_fitness = None
     child_population = None
     generations = None
+    iterations = None
 
     def __init__(self) -> None:
         """
@@ -19,6 +27,7 @@ class TSP():
             self.distances = self.get_distance_matrix(self.number_of_cities) #generate random distances between cities.
             self.population_size = int(input("[I/O] Please enter population size: "))
             self.generations = list() #the output of each generation must be stored within this. e
+            self.iterations = int(input("[I/O] Please enter the number of iterations you want: "))
         except Exception as e:
             self.status_update("[ERR] The following error occured while trying to intialize module params: "+str(e))
         
@@ -318,6 +327,64 @@ class TSP():
         except Exception as e:
             self.status_update("[ERR] The following error occured while trying to compute statistics of the population: "+str(e))
 
+    def plot_best_path_of_all_generations(self, generations):
+        """
+        Plots the best path across all provided generations.
+
+        :param generations: List of dictionaries containing stats about each generation.
+        """
+        # Extract the path with the shortest distance from all generations
+        best_gen = min(generations, key=lambda x: x["best_distance"])
+        best_path = list(map(int, best_gen['best_path'].split(',')))
+        
+        print("Here's the best path: ", best_path)
+        # Extract x and y coordinates from best path for plotting
+        x_coords = [i for i, _ in enumerate(best_path)]
+        y_coords = best_path
+
+        # Plotting
+        plt.figure(figsize=(10, 6))
+        plt.plot(x_coords, y_coords, '-o', label=f'Best Path: Distance = {best_gen["best_distance"]:.2f}')
+        plt.scatter(x_coords, y_coords, c='red')  # Highlight each city as a point
+
+        plt.title('Best Path Across All Generations')
+        plt.xlabel('City Index')
+        plt.ylabel('City Order in Path')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+
+    def plot_best_path_evolution(self, generations):
+        """
+        Plots the evolution of the best path over the provided generations.
+
+        :param generations: List of dictionaries containing stats about each generation.
+        """
+        # Extract the best paths and convert them to lists of integers
+        best_paths = [list(map(int, gen['best_path'].split(','))) for gen in generations]
+
+        
+
+        # Extract x and y coordinates from best path for plotting
+        x_coords = [i for i, _ in enumerate(best_paths[0])]
+        y_coords = best_paths
+
+        # Plotting
+        plt.figure(figsize=(10, 6))
+
+        for generation, y in enumerate(y_coords):
+            plt.plot(x_coords, y, label=f'Generation {generation + 1}')
+
+        plt.title('Best Path Across Generations')
+        plt.xlabel('City Index')
+        plt.ylabel('City Order in Path')
+        plt.legend()
+        plt.show()
+
+# Sample usage
+# generations = [ { ... }, { ... }, ... ]  # your list of dictionaries
+# plot_best_path_evolution(generations)
     def verify_stats(self, stats) -> bool:
         """
         This method varifies if the results of the current generation are valid or not.
@@ -340,9 +407,52 @@ class TSP():
         except Exception as e:
             self.status_update("[ERR] The following error occured while trying to verify results for a generation: "+str(e))
 
-    
+    import matplotlib.pyplot as plt
 
-    def run(self, iterations=5) -> None:
+    def plot_results(self, generations):
+        # Extracting values
+        gen_numbers = list(range(1, len(generations) + 1))
+        best_distances = [gen['best_distance'] for gen in generations]
+        average_distances = [gen['average_distance'] for gen in generations]
+        
+        plt.figure(figsize=(14, 6))
+        
+        # 1. Best distances over generations
+        plt.subplot(2, 2, 1)
+        plt.plot(gen_numbers, best_distances, marker='o', linestyle='-', color='b')
+        plt.title('Best Distance over Generations')
+        plt.xlabel('Generation')
+        plt.ylabel('Best Distance')
+        plt.grid(True)
+
+        # 2. Average distances over generations
+        plt.subplot(2, 2, 2)
+        plt.plot(gen_numbers, average_distances, marker='o', linestyle='-', color='r')
+        plt.title('Average Distance over Generations')
+        plt.xlabel('Generation')
+        plt.ylabel('Average Distance')
+        plt.grid(True)
+
+        # 3. Histogram of average distances
+        plt.subplot(2, 2, 3)
+        plt.hist(average_distances, bins=10, color='g', edgecolor='black')
+        plt.title('Histogram of Average Distances')
+        plt.xlabel('Distance')
+        plt.ylabel('Count')
+
+        # 4. Histogram of best distances
+        plt.subplot(2, 2, 4)
+        plt.hist(best_distances, bins=10, color='c', edgecolor='black')
+        plt.title('Histogram of Best Distances')
+        plt.xlabel('Distance')
+        plt.ylabel('Count')
+
+        plt.tight_layout()
+        plt.show()
+
+
+
+    def run(self) -> None:
         """
         The run method acts like the driver method for this module/class, kinda like a main function within C.
         """
@@ -350,7 +460,8 @@ class TSP():
             i = 0
             self.population = self.create_population(self.population_size) #create population
             
-            while i<iterations:
+            while i<self.iterations:
+                
                 print("-"*100)
                 print("\t\t\t\t\t\t Generation %d"%(len(self.generations)+1))
                 print("-"*100)
@@ -377,7 +488,11 @@ class TSP():
                     i=i-1 #recompute the results again.
                 self.population_distance = self.child_population
                 self.status_update("[INFO] Current child population shall become ordinary population for next generation.\n\n")
-            print(self.generations)
+                clear_screen()
+            
+            self.plot_best_path_evolution(self.generations)
+            self.plot_results(self.generations)
+            self.plot_best_path_of_all_generations(self.generations)
         except Exception as e:
             self.status_update("[ERR] The following error occured while trying to run the module: "+str(e))
 
